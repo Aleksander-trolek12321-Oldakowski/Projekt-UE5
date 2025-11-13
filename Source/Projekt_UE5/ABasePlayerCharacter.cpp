@@ -1,21 +1,23 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
-
 #include "ABasePlayerCharacter.h"
+#include "UInteractionComponent.h"
+#include "WeaponBase.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
-#include "InputMappingContext.h"
 #include "InputAction.h"
+#include "InputMappingContext.h"
+#include "InputActionValue.h"
 #include "GameFramework/PlayerController.h"
 
-AABasePlayerCharacter::AABasePlayerCharacter()
+ABasePlayerCharacter::ABasePlayerCharacter()
 {
     PrimaryActorTick.bCanEverTick = true;
+
+    InteractionComponent = CreateDefaultSubobject<UInteractionComponent>(TEXT("InteractionComponent"));
+
+    CurrentWeapon = nullptr;
 }
 
-
-
-void AABasePlayerCharacter::BeginPlay()
+void ABasePlayerCharacter::BeginPlay()
 {
     Super::BeginPlay();
 
@@ -27,7 +29,6 @@ void AABasePlayerCharacter::BeginPlay()
             {
                 if (DefaultMappingContext)
                 {
-                    // priorytet 0 (możesz zmienić)
                     Subsystem->AddMappingContext(DefaultMappingContext, 0);
                 }
             }
@@ -35,31 +36,61 @@ void AABasePlayerCharacter::BeginPlay()
     }
 }
 
-void AABasePlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
+void ABasePlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
     Super::SetupPlayerInputComponent(PlayerInputComponent);
 
     if (UEnhancedInputComponent* EIC = Cast<UEnhancedInputComponent>(PlayerInputComponent))
     {
-        if (IA_Move)     EIC->BindAction(IA_Move, ETriggerEvent::Triggered, this, &AABasePlayerCharacter::Move);
-        if (IA_Interact) EIC->BindAction(IA_Interact, ETriggerEvent::Started,   this, &AABasePlayerCharacter::OnInteract);
-        if (IA_Attack)   EIC->BindAction(IA_Attack, ETriggerEvent::Started,     this, &AABasePlayerCharacter::OnAttack);
+        if (IA_Move)     EIC->BindAction(IA_Move, ETriggerEvent::Triggered, this, &ABasePlayerCharacter::Move);
+        if (IA_Look)     EIC->BindAction(IA_Look, ETriggerEvent::Triggered, this, &ABasePlayerCharacter::Look);
+        if (IA_Interact) EIC->BindAction(IA_Interact, ETriggerEvent::Started,   this, &ABasePlayerCharacter::OnInteract);
+        if (IA_Attack)   EIC->BindAction(IA_Attack, ETriggerEvent::Started,     this, &ABasePlayerCharacter::OnAttack);
     }
 }
 
-void AABasePlayerCharacter::Move(const FInputActionValue& Value)
+void ABasePlayerCharacter::Move(const FInputActionValue& Value)
 {
-    FVector2D MovementVector = Value.Get<FVector2D>();
+    const FVector2D MovementVector = Value.Get<FVector2D>();
     AddMovementInput(GetActorForwardVector(), MovementVector.Y);
     AddMovementInput(GetActorRightVector(),   MovementVector.X);
 }
 
-void AABasePlayerCharacter::OnInteract(const FInputActionValue& Value)
+void ABasePlayerCharacter::Look(const FInputActionValue& Value)
 {
-    UE_LOG(LogTemp, Log, TEXT("Interact pressed"));
+    const FVector2D LookAxis = Value.Get<FVector2D>();
+    AddControllerYawInput(LookAxis.X);
+    AddControllerPitchInput(LookAxis.Y);
 }
 
-void AABasePlayerCharacter::OnAttack(const FInputActionValue& Value)
+void ABasePlayerCharacter::OnInteract(const FInputActionValue& Value)
+{
+    if (InteractionComponent)
+    {
+        InteractionComponent->PrimaryInteract();
+    }
+}
+
+void ABasePlayerCharacter::OnAttack(const FInputActionValue& Value)
 {
     UE_LOG(LogTemp, Log, TEXT("Attack pressed"));
+}
+
+void ABasePlayerCharacter::EquipItem_Implementation(AActor* Item, APawn* InstigatorPawn)
+{
+    if (!Item) return;
+
+    AWeaponBase* Weapon = Cast<AWeaponBase>(Item);
+    if (!Weapon)
+    {
+        return;
+    }
+
+    const FName SocketName("WeaponSocket");
+    Weapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, SocketName);
+
+    Weapon->SetOwner(this);
+    CurrentWeapon = Weapon;
+
+    UE_LOG(LogTemp, Log, TEXT("Equipped weapon: %s"), *GetNameSafe(Weapon));
 }

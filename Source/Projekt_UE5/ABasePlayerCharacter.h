@@ -1,41 +1,55 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
+// ABasePlayerCharacter.h
 #pragma once
 
 #include "CoreMinimal.h"
-#include "ABaseCharacter.h"
+#include "GameFramework/Character.h"
 #include "InputActionValue.h"
+#include "EquipInterface.h"
 #include "ABasePlayerCharacter.generated.h"
 
-class UInputAction;
 class UInputMappingContext;
+class UInputAction;
+class UInteractionComponent;
+class AWeaponBase;
+
 UCLASS()
-class PROJEKT_UE5_API AABasePlayerCharacter : public AABaseCharacter
+class PROJEKT_UE5_API ABasePlayerCharacter : public ACharacter, public IEquipInterface
 {
-	GENERATED_BODY()
+    GENERATED_BODY()
 
-	public:
-	AABasePlayerCharacter();
+public:
+    ABasePlayerCharacter();
 
-	protected:
-		virtual void BeginPlay() override;
-		virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
+    virtual void BeginPlay() override;
+    virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
 
-		// handlers
-		void Move(const FInputActionValue& Value);
-		void OnInteract(const FInputActionValue& Value);
-		void OnAttack(const FInputActionValue& Value);
+    void Move(const FInputActionValue& Value);
+    void Look(const FInputActionValue& Value);
+    void OnInteract(const FInputActionValue& Value);
+    void OnAttack(const FInputActionValue& Value);
 
-	public:
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
+    UPROPERTY(EditDefaultsOnly, Category="Input")
     UInputMappingContext* DefaultMappingContext;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
+    UPROPERTY(EditDefaultsOnly, Category="Input")
     UInputAction* IA_Move;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
+    UPROPERTY(EditDefaultsOnly, Category="Input")
+    UInputAction* IA_Look;
+
+    UPROPERTY(EditDefaultsOnly, Category="Input")
     UInputAction* IA_Interact;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
+    UPROPERTY(EditDefaultsOnly, Category="Input")
     UInputAction* IA_Attack;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components")
+    UInteractionComponent* InteractionComponent;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Weapon")
+    AWeaponBase* CurrentWeapon;
+
+    virtual void EquipItem_Implementation(AActor* Item, APawn* InstigatorPawn) override;
+
+    FORCEINLINE AWeaponBase* GetEquippedWeapon() const { return CurrentWeapon; }
 };
