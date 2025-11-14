@@ -52,4 +52,16 @@ public:
     virtual void EquipItem_Implementation(AActor* Item, APawn* InstigatorPawn) override;
 
     FORCEINLINE AWeaponBase* GetEquippedWeapon() const { return CurrentWeapon; }
+
+    UFUNCTION(BlueprintCallable, Category="Combat")
+    void PlayAttackMontage();
+
+    UFUNCTION()
+    void OnAttackNotifyBegin();
+
+    UFUNCTION()
+    void OnAttackNotifyEnd();
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Animation")
+    UAnimMontage* AttackMontage;
 };

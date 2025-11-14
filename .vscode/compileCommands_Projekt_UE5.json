@@ -64,6 +64,22 @@
 		"directory": "E:\\unrealka\\UE_5.4\\Engine\\Source"
 	},
 	{
+		"file": "E:\\unrealka\\Projekt_UE5\\Projekt-UE5\\Source\\Projekt_UE5\\ANS_EnableWeaponCollision.cpp",
+		"arguments": [
+			"E:\\vs\\VC\\Tools\\MSVC\\14.41.34120\\bin\\Hostx64\\x64\\cl.exe",
+			"@E:\\unrealka\\Projekt_UE5\\Projekt-UE5\\.vscode\\compileCommands_Projekt_UE5\\Projekt_UE5.1.rsp"
+		],
+		"directory": "E:\\unrealka\\UE_5.4\\Engine\\Source"
+	},
+	{
+		"file": "E:\\unrealka\\Projekt_UE5\\Projekt-UE5\\Source\\Projekt_UE5\\ANS_EnableWeaponCollision.h",
+		"arguments": [
+			"E:\\vs\\VC\\Tools\\MSVC\\14.41.34120\\bin\\Hostx64\\x64\\cl.exe",
+			"@E:\\unrealka\\Projekt_UE5\\Projekt-UE5\\.vscode\\compileCommands_Projekt_UE5\\Projekt_UE5.1.rsp"
+		],
+		"directory": "E:\\unrealka\\UE_5.4\\Engine\\Source"
+	},
+	{
 		"file": "E:\\unrealka\\Projekt_UE5\\Projekt-UE5\\Source\\Projekt_UE5\\APlayerController.cpp",
 		"arguments": [
 			"E:\\vs\\VC\\Tools\\MSVC\\14.41.34120\\bin\\Hostx64\\x64\\cl.exe",
@@ -73,6 +89,54 @@
 	},
 	{
 		"file": "E:\\unrealka\\Projekt_UE5\\Projekt-UE5\\Source\\Projekt_UE5\\APlayerController.h",
+		"arguments": [
+			"E:\\vs\\VC\\Tools\\MSVC\\14.41.34120\\bin\\Hostx64\\x64\\cl.exe",
+			"@E:\\unrealka\\Projekt_UE5\\Projekt-UE5\\.vscode\\compileCommands_Projekt_UE5\\Projekt_UE5.1.rsp"
+		],
+		"directory": "E:\\unrealka\\UE_5.4\\Engine\\Source"
+	},
+	{
+		"file": "E:\\unrealka\\Projekt_UE5\\Projekt-UE5\\Source\\Projekt_UE5\\EquipInterface.cpp",
+		"arguments": [
+			"E:\\vs\\VC\\Tools\\MSVC\\14.41.34120\\bin\\Hostx64\\x64\\cl.exe",
+			"@E:\\unrealka\\Projekt_UE5\\Projekt-UE5\\.vscode\\compileCommands_Projekt_UE5\\Projekt_UE5.1.rsp"
+		],
+		"directory": "E:\\unrealka\\UE_5.4\\Engine\\Source"
+	},
+	{
+		"file": "E:\\unrealka\\Projekt_UE5\\Projekt-UE5\\Source\\Projekt_UE5\\EquipInterface.h",
+		"arguments": [
+			"E:\\vs\\VC\\Tools\\MSVC\\14.41.34120\\bin\\Hostx64\\x64\\cl.exe",
+			"@E:\\unrealka\\Projekt_UE5\\Projekt-UE5\\.vscode\\compileCommands_Projekt_UE5\\Projekt_UE5.1.rsp"
+		],
+		"directory": "E:\\unrealka\\UE_5.4\\Engine\\Source"
+	},
+	{
+		"file": "E:\\unrealka\\Projekt_UE5\\Projekt-UE5\\Source\\Projekt_UE5\\InteractionInterface.cpp",
+		"arguments": [
+			"E:\\vs\\VC\\Tools\\MSVC\\14.41.34120\\bin\\Hostx64\\x64\\cl.exe",
+			"@E:\\unrealka\\Projekt_UE5\\Projekt-UE5\\.vscode\\compileCommands_Projekt_UE5\\Projekt_UE5.1.rsp"
+		],
+		"directory": "E:\\unrealka\\UE_5.4\\Engine\\Source"
+	},
+	{
+		"file": "E:\\unrealka\\Projekt_UE5\\Projekt-UE5\\Source\\Projekt_UE5\\InteractionInterface.h",
+		"arguments": [
+			"E:\\vs\\VC\\Tools\\MSVC\\14.41.34120\\bin\\Hostx64\\x64\\cl.exe",
+			"@E:\\unrealka\\Projekt_UE5\\Projekt-UE5\\.vscode\\compileCommands_Projekt_UE5\\Projekt_UE5.1.rsp"
+		],
+		"directory": "E:\\unrealka\\UE_5.4\\Engine\\Source"
+	},
+	{
+		"file": "E:\\unrealka\\Projekt_UE5\\Projekt-UE5\\Source\\Projekt_UE5\\ItemBase.cpp",
+		"arguments": [
+			"E:\\vs\\VC\\Tools\\MSVC\\14.41.34120\\bin\\Hostx64\\x64\\cl.exe",
+			"@E:\\unrealka\\Projekt_UE5\\Projekt-UE5\\.vscode\\compileCommands_Projekt_UE5\\Projekt_UE5.1.rsp"
+		],
+		"directory": "E:\\unrealka\\UE_5.4\\Engine\\Source"
+	},
+	{
+		"file": "E:\\unrealka\\Projekt_UE5\\Projekt-UE5\\Source\\Projekt_UE5\\ItemBase.h",
 		"arguments": [
 			"E:\\vs\\VC\\Tools\\MSVC\\14.41.34120\\bin\\Hostx64\\x64\\cl.exe",
 			"@E:\\unrealka\\Projekt_UE5\\Projekt-UE5\\.vscode\\compileCommands_Projekt_UE5\\Projekt_UE5.1.rsp"
@@ -129,6 +193,38 @@
 	},
 	{
 		"file": "E:\\unrealka\\Projekt_UE5\\Projekt-UE5\\Source\\Projekt_UE5\\Projekt_UE5GameMode.h",
+		"arguments": [
+			"E:\\vs\\VC\\Tools\\MSVC\\14.41.34120\\bin\\Hostx64\\x64\\cl.exe",
+			"@E:\\unrealka\\Projekt_UE5\\Projekt-UE5\\.vscode\\compileCommands_Projekt_UE5\\Projekt_UE5.1.rsp"
+		],
+		"directory": "E:\\unrealka\\UE_5.4\\Engine\\Source"
+	},
+	{
+		"file": "E:\\unrealka\\Projekt_UE5\\Projekt-UE5\\Source\\Projekt_UE5\\UInteractionComponent.cpp",
+		"arguments": [
+			"E:\\vs\\VC\\Tools\\MSVC\\14.41.34120\\bin\\Hostx64\\x64\\cl.exe",
+			"@E:\\unrealka\\Projekt_UE5\\Projekt-UE5\\.vscode\\compileCommands_Projekt_UE5\\Projekt_UE5.1.rsp"
+		],
+		"directory": "E:\\unrealka\\UE_5.4\\Engine\\Source"
+	},
+	{
+		"file": "E:\\unrealka\\Projekt_UE5\\Projekt-UE5\\Source\\Projekt_UE5\\UInteractionComponent.h",
+		"arguments": [
+			"E:\\vs\\VC\\Tools\\MSVC\\14.41.34120\\bin\\Hostx64\\x64\\cl.exe",
+			"@E:\\unrealka\\Projekt_UE5\\Projekt-UE5\\.vscode\\compileCommands_Projekt_UE5\\Projekt_UE5.1.rsp"
+		],
+		"directory": "E:\\unrealka\\UE_5.4\\Engine\\Source"
+	},
+	{
+		"file": "E:\\unrealka\\Projekt_UE5\\Projekt-UE5\\Source\\Projekt_UE5\\WeaponBase.cpp",
+		"arguments": [
+			"E:\\vs\\VC\\Tools\\MSVC\\14.41.34120\\bin\\Hostx64\\x64\\cl.exe",
+			"@E:\\unrealka\\Projekt_UE5\\Projekt-UE5\\.vscode\\compileCommands_Projekt_UE5\\Projekt_UE5.1.rsp"
+		],
+		"directory": "E:\\unrealka\\UE_5.4\\Engine\\Source"
+	},
+	{
+		"file": "E:\\unrealka\\Projekt_UE5\\Projekt-UE5\\Source\\Projekt_UE5\\WeaponBase.h",
 		"arguments": [
 			"E:\\vs\\VC\\Tools\\MSVC\\14.41.34120\\bin\\Hostx64\\x64\\cl.exe",
 			"@E:\\unrealka\\Projekt_UE5\\Projekt-UE5\\.vscode\\compileCommands_Projekt_UE5\\Projekt_UE5.1.rsp"

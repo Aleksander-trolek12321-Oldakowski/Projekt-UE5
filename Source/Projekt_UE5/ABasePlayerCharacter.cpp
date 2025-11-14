@@ -1,4 +1,5 @@
 #include "ABasePlayerCharacter.h"
+#include "Net/UnrealNetwork.h"
 #include "UInteractionComponent.h"
 #include "WeaponBase.h"
 #include "EnhancedInputComponent.h"
@@ -73,7 +74,46 @@ void ABasePlayerCharacter::OnInteract(const FInputActionValue& Value)
 
 void ABasePlayerCharacter::OnAttack(const FInputActionValue& Value)
 {
-    UE_LOG(LogTemp, Log, TEXT("Attack pressed"));
+    if (HasAuthority())
+    {
+        PlayAttackMontage();
+        UE_LOG(LogTemp, Log, TEXT("Has Authority"));   
+    }
+    else
+    {
+        UE_LOG(LogTemp, Warning, TEXT("Has no Authority"));  
+    }
+}
+
+void ABasePlayerCharacter::PlayAttackMontage()
+{
+    if (AttackMontage && GetMesh())
+    {
+        UE_LOG(LogTemp, Log, TEXT("PlayAnimMontage called"));
+        PlayAnimMontage(AttackMontage);
+    }
+    else
+    {
+        UE_LOG(LogTemp, Warning, TEXT("No AttackMontage or GetMesh()==null"));
+    }
+}
+
+void ABasePlayerCharacter::OnAttackNotifyBegin()
+{
+    if (CurrentWeapon)
+    {
+        CurrentWeapon->EnableHitBox();
+        UE_LOG(LogTemp, Log, TEXT("Character: Attack notify begin - HitBox enabled"));
+    }
+}
+
+void ABasePlayerCharacter::OnAttackNotifyEnd()
+{
+    if (CurrentWeapon)
+    {
+        CurrentWeapon->DisableHitBox();
+        UE_LOG(LogTemp, Log, TEXT("Character: Attack notify end - HitBox disabled"));
+    }
 }
 
 void ABasePlayerCharacter::EquipItem_Implementation(AActor* Item, APawn* InstigatorPawn)
