@@ -5,15 +5,18 @@
 #include "GameFramework/Character.h"
 #include "InputActionValue.h"
 #include "EquipInterface.h"
+#include "CombatInterface.h"
+#include "AttributesComponent.h"
 #include "ABasePlayerCharacter.generated.h"
 
 class UInputMappingContext;
 class UInputAction;
 class UInteractionComponent;
 class AWeaponBase;
+class UAttributesComponent;
 
 UCLASS()
-class PROJEKT_UE5_API ABasePlayerCharacter : public ACharacter, public IEquipInterface
+class PROJEKT_UE5_API ABasePlayerCharacter : public ACharacter, public IEquipInterface, public ICombatInterface
 {
     GENERATED_BODY()
 
@@ -64,4 +67,15 @@ public:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Animation")
     UAnimMontage* AttackMontage;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components")
+    UAttributesComponent* Attributes;
+
+    UFUNCTION()
+    void HandleTakeAnyDamage(AActor* DamagedActor, float Damage, const UDamageType* DamageType, AController* InstigatedBy, AActor* DamageCauser);
+
+    UFUNCTION()
+    void OnPlayerDeath(AActor* OwningActor);
+
+    virtual void GetHit_Implementation(AActor* InstigatorActor, float Damage, const FVector& ImpactPoint) override;
 };

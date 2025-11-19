@@ -7,7 +7,12 @@
 #include "InputAction.h"
 #include "InputMappingContext.h"
 #include "InputActionValue.h"
+#include "TimerManager.h"
+#include "Engine/World.h"
 #include "GameFramework/PlayerController.h"
+#include "Components/CapsuleComponent.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "Kismet/GameplayStatics.h"
 
 ABasePlayerCharacter::ABasePlayerCharacter()
 {
@@ -16,6 +21,8 @@ ABasePlayerCharacter::ABasePlayerCharacter()
     InteractionComponent = CreateDefaultSubobject<UInteractionComponent>(TEXT("InteractionComponent"));
 
     CurrentWeapon = nullptr;
+
+    Attributes = CreateDefaultSubobject<UAttributesComponent>(TEXT("Attributes"));
 }
 
 void ABasePlayerCharacter::BeginPlay()
@@ -34,6 +41,13 @@ void ABasePlayerCharacter::BeginPlay()
                 }
             }
         }
+    }
+
+    OnTakeAnyDamage.AddDynamic(this, &ABasePlayerCharacter::HandleTakeAnyDamage);
+
+    if (Attributes)
+    {
+        Attributes->OnDeath.AddDynamic(this, &ABasePlayerCharacter::OnPlayerDeath);
     }
 }
 
@@ -133,4 +147,49 @@ void ABasePlayerCharacter::EquipItem_Implementation(AActor* Item, APawn* Instiga
     CurrentWeapon = Weapon;
 
     UE_LOG(LogTemp, Log, TEXT("Equipped weapon: %s"), *GetNameSafe(Weapon));
+}
+
+void ABasePlayerCharacter::HandleTakeAnyDamage(AActor* DamagedActor, float Damage, const UDamageType* DamageType, AController* InstigatedBy, AActor* DamageCauser)
+{
+    if (!Attributes) return;
+
+    UE_LOG(LogTemp, Log, TEXT("Player HandleTakeAnyDamage: Damage=%f from %s"), Damage, *GetNameSafe(DamageCauser));
+    Attributes->ApplyDamage(Damage);
+}
+
+void ABasePlayerCharacter::OnPlayerDeath(AActor* OwningActor)
+{
+    UE_LOG(LogTemp, Warning, TEXT("Player died: %s"), *GetName());
+
+    if (APlayerController* PC = Cast<APlayerController>(GetController()))
+    {
+        DisableInput(PC);
+    }
+
+    if (USkeletalMeshComponent* SkelMesh = GetMesh())
+    {
+        if (UCapsuleComponent* Capsule = GetCapsuleComponent())
+        {
+            Capsule->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+        }
+
+        SkelMesh->SetCollisionProfileName(TEXT("Ragdoll"));
+        SkelMesh->SetAllBodiesSimulatePhysics(true);
+        SkelMesh->SetSimulatePhysics(true);
+        SkelMesh->WakeAllRigidBodies();
+    }
+
+    FTimerHandle RespawnTimer;
+    GetWorldTimerManager().SetTimer(RespawnTimer, [this]()
+    {
+        UGameplayStatics::OpenLevel(this, FName(*GetWorld()->GetName()), false);
+    }, 3.0f, false);
+}
+
+void ABasePlayerCharacter::GetHit_Implementation(AActor* InstigatorActor, float Damage, const FVector& ImpactPoint)
+{
+    if (!Attributes) return;
+
+    UE_LOG(LogTemp, Log, TEXT("Player GetHit_Implementation: Damage=%f from %s"), Damage, *GetNameSafe(InstigatorActor));
+    Attributes->ApplyDamage(Damage);
 }
