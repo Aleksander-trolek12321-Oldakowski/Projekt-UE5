@@ -4,15 +4,9 @@
 #include "GameFramework/Character.h"
 #include "CombatInterface.h"
 #include "Components/BoxComponent.h"
+#include "SharedTypes.h"
 #include "ABaseEnemyCharacter.generated.h"
 
-UENUM(BlueprintType)
-enum class EPawnState : uint8
-{
-    Idle        UMETA(DisplayName="Idle"),
-    InCombat    UMETA(DisplayName="InCombat"),
-    Hit         UMETA(DisplayName="Hit")
-};
 
 class UAttributesComponent;
 class USoundBase;

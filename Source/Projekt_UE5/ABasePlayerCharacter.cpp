@@ -13,6 +13,7 @@
 #include "Components/CapsuleComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "APlayerController.h"
 
 ABasePlayerCharacter::ABasePlayerCharacter()
 {
@@ -47,7 +48,21 @@ void ABasePlayerCharacter::BeginPlay()
 
     if (Attributes)
     {
+        Attributes->OnHealthChanged.AddDynamic(this, &ABasePlayerCharacter::OnHealthChanged_Handler);
+        Attributes->OnStaminaChanged.AddDynamic(this, &ABasePlayerCharacter::OnStaminaChanged_Handler);
         Attributes->OnDeath.AddDynamic(this, &ABasePlayerCharacter::OnPlayerDeath);
+    }
+
+    if (AAPlayerController* MyPC = GetBasePC())
+    {
+        if (MyPC->MainHUDWidget)
+        {
+            MyPC->MainHUDWidget->UpdateHealth(Attributes ? Attributes->GetHealth() : 0.f,
+                                            Attributes ? Attributes->GetMaxHealth() : 0.f);
+            MyPC->MainHUDWidget->UpdateStamina(Attributes ? Attributes->GetStamina() : 0.f,
+                                            Attributes ? Attributes->GetMaxStamina() : 0.f);
+            MyPC->MainHUDWidget->UpdatePawnState(PawnState);
+        }
     }
 }
 
@@ -86,17 +101,135 @@ void ABasePlayerCharacter::OnInteract(const FInputActionValue& Value)
     }
 }
 
+void ABasePlayerCharacter::SetPawnStateWithTimeout(EPawnState NewState, float Duration /*=2.0f*/)
+{
+    if (PawnState == EPawnState::Dead)
+    {
+        return;
+    }
+
+    PawnState = NewState;
+
+    if (AAPlayerController* PC = GetBasePC())
+    {
+        if (PC->MainHUDWidget)
+        {
+            PC->MainHUDWidget->UpdatePawnState(PawnState);
+            UE_LOG(LogTemp, Log, TEXT("HUD UpdatePawnState called -> %d"), (int)PawnState);
+        }
+    }
+
+    if (Duration <= 0.f)
+    {
+        return;
+    }
+
+    GetWorldTimerManager().ClearTimer(StateRestoreTimerHandle);
+    GetWorldTimerManager().SetTimer(StateRestoreTimerHandle, this, &ABasePlayerCharacter::RestoreStateToIdle, Duration, false);
+}
+
+void ABasePlayerCharacter::RestoreStateToIdle()
+{
+    if (PawnState == EPawnState::Dead) return;
+
+    PawnState = EPawnState::Idle;
+
+    if (AAPlayerController* PC = GetBasePC())
+    {
+        if (PC->MainHUDWidget)
+        {
+            PC->MainHUDWidget->UpdatePawnState(PawnState);
+            UE_LOG(LogTemp, Log, TEXT("HUD UpdatePawnState called -> Idle (timer)"));
+        }
+    }
+}
+
+
+void ABasePlayerCharacter::OnHealthChanged_Handler(float Current, float Max)
+{
+    if (AAPlayerController* PC = GetBasePC())
+    {
+        if (PC->MainHUDWidget)
+        {
+            PC->MainHUDWidget->UpdateHealth(Current, Max);
+        }
+    }
+}
+
+void ABasePlayerCharacter::OnStaminaChanged_Handler(float Current, float Max)
+{
+    if (AAPlayerController* PC = GetBasePC())
+    {
+        if (PC->MainHUDWidget)
+        {
+            PC->MainHUDWidget->UpdateStamina(Current, Max);
+        }
+    }
+    if (Attributes)
+    {
+        float MinimalThreshold = 10.f;
+        if (Attributes->GetStamina() <= MinimalThreshold)
+        {
+            PawnState = EPawnState::Exhausted;
+            if (AAPlayerController* PC2 = GetBasePC())
+            {
+                if (PC2->MainHUDWidget) PC2->MainHUDWidget->UpdatePawnState(PawnState);
+            }
+        }
+        else if (PawnState == EPawnState::Exhausted)
+        {
+            PawnState = EPawnState::Idle;
+            if (AAPlayerController* PC2 = GetBasePC())
+            {
+                if (PC2->MainHUDWidget) PC2->MainHUDWidget->UpdatePawnState(PawnState);
+            }
+        }
+    }
+}
+
 void ABasePlayerCharacter::OnAttack(const FInputActionValue& Value)
 {
-    if (HasAuthority())
+    if (PawnState == EPawnState::Hit || PawnState == EPawnState::Dead)
     {
-        PlayAttackMontage();
-        UE_LOG(LogTemp, Log, TEXT("Has Authority"));   
+        UE_LOG(LogTemp, Warning, TEXT("Attack blocked due to state %d"), (int)PawnState);
+        return;
+    }
+
+    if (!Attributes)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("No Attributes component"));
+        return;
+    }
+
+    float Cost = Attributes->StaminaCost.StaminaCost_Attack;
+    if (!Attributes->CanPayStaminaCost(Cost))
+    {
+        UE_LOG(LogTemp, Warning, TEXT("Not enough stamina for attack"));
+        return;
+    }
+
+    Attributes->PayStamina(Cost);
+
+    SetPawnStateWithTimeout(EPawnState::InCombat, 2.0f);
+
+    if (AAPlayerController* PC = GetBasePC())
+    {
+        if (PC->MainHUDWidget)
+        {
+            PC->MainHUDWidget->UpdatePawnState(PawnState);
+            UE_LOG(LogTemp, Log, TEXT("HUD UpdatePawnState called -> InCombat"));
+        }
+        else
+        {
+            UE_LOG(LogTemp, Warning, TEXT("HUD widget null when setting InCombat"));
+        }
     }
     else
     {
-        UE_LOG(LogTemp, Warning, TEXT("Has no Authority"));  
+        UE_LOG(LogTemp, Warning, TEXT("Controller is not AAPlayerController when setting InCombat"));
     }
+
+    PlayAttackMontage();
 }
 
 void ABasePlayerCharacter::PlayAttackMontage()
@@ -123,6 +256,24 @@ void ABasePlayerCharacter::OnAttackNotifyBegin()
 
 void ABasePlayerCharacter::OnAttackNotifyEnd()
 {
+    PawnState = EPawnState::Idle;
+
+    if (AAPlayerController* PC = GetBasePC())
+    {
+        if (PC->MainHUDWidget)
+        {
+            PC->MainHUDWidget->UpdatePawnState(PawnState);
+        }
+        else
+        {
+            UE_LOG(LogTemp, Warning, TEXT("HUD widget null when setting Idle"));
+        }
+    }
+    else
+    {
+        UE_LOG(LogTemp, Warning, TEXT("Controller is not AAPlayerController when setting Idle"));
+    }
+
     if (CurrentWeapon)
     {
         CurrentWeapon->DisableHitBox();
@@ -154,42 +305,32 @@ void ABasePlayerCharacter::HandleTakeAnyDamage(AActor* DamagedActor, float Damag
     if (!Attributes) return;
 
     UE_LOG(LogTemp, Log, TEXT("Player HandleTakeAnyDamage: Damage=%f from %s"), Damage, *GetNameSafe(DamageCauser));
+
+    SetPawnStateWithTimeout(EPawnState::Hit, 2.0f);
+
     Attributes->ApplyDamage(Damage);
-}
-
-void ABasePlayerCharacter::OnPlayerDeath(AActor* OwningActor)
-{
-    UE_LOG(LogTemp, Warning, TEXT("Player died: %s"), *GetName());
-
-    if (APlayerController* PC = Cast<APlayerController>(GetController()))
-    {
-        DisableInput(PC);
-    }
-
-    if (USkeletalMeshComponent* SkelMesh = GetMesh())
-    {
-        if (UCapsuleComponent* Capsule = GetCapsuleComponent())
-        {
-            Capsule->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-        }
-
-        SkelMesh->SetCollisionProfileName(TEXT("Ragdoll"));
-        SkelMesh->SetAllBodiesSimulatePhysics(true);
-        SkelMesh->SetSimulatePhysics(true);
-        SkelMesh->WakeAllRigidBodies();
-    }
-
-    FTimerHandle RespawnTimer;
-    GetWorldTimerManager().SetTimer(RespawnTimer, [this]()
-    {
-        UGameplayStatics::OpenLevel(this, FName(*GetWorld()->GetName()), false);
-    }, 3.0f, false);
 }
 
 void ABasePlayerCharacter::GetHit_Implementation(AActor* InstigatorActor, float Damage, const FVector& ImpactPoint)
 {
-    if (!Attributes) return;
+    if (Attributes)
+    {
+        Attributes->ApplyDamage(Damage);
+    }
 
-    UE_LOG(LogTemp, Log, TEXT("Player GetHit_Implementation: Damage=%f from %s"), Damage, *GetNameSafe(InstigatorActor));
-    Attributes->ApplyDamage(Damage);
+    SetPawnStateWithTimeout(EPawnState::Hit, 2.0f);
+}
+
+void ABasePlayerCharacter::OnPlayerDeath(AActor* OwningActor)
+{
+    PawnState = EPawnState::Dead;
+    if (AAPlayerController* PC = GetBasePC())
+    {
+        if (PC->MainHUDWidget) PC->MainHUDWidget->UpdatePawnState(PawnState);
+    }
+
+    if (AAPlayerController* PCtr = Cast<AAPlayerController>(GetController()))
+    {
+        DisableInput(PCtr);
+    }
 }

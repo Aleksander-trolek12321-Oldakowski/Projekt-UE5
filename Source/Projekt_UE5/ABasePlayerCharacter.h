@@ -7,6 +7,7 @@
 #include "EquipInterface.h"
 #include "CombatInterface.h"
 #include "AttributesComponent.h"
+#include "SharedTypes.h"
 #include "ABasePlayerCharacter.generated.h"
 
 class UInputMappingContext;
@@ -14,6 +15,7 @@ class UInputAction;
 class UInteractionComponent;
 class AWeaponBase;
 class UAttributesComponent;
+class AAPlayerController;
 
 UCLASS()
 class PROJEKT_UE5_API ABasePlayerCharacter : public ACharacter, public IEquipInterface, public ICombatInterface
@@ -71,6 +73,15 @@ public:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components")
     UAttributesComponent* Attributes;
 
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="State")
+    EPawnState PawnState = EPawnState::Idle;
+
+    UFUNCTION()
+    void OnHealthChanged_Handler(float Current, float Max);
+
+    UFUNCTION()
+    void OnStaminaChanged_Handler(float Current, float Max);
+
     UFUNCTION()
     void HandleTakeAnyDamage(AActor* DamagedActor, float Damage, const UDamageType* DamageType, AController* InstigatedBy, AActor* DamageCauser);
 
@@ -78,4 +89,13 @@ public:
     void OnPlayerDeath(AActor* OwningActor);
 
     virtual void GetHit_Implementation(AActor* InstigatorActor, float Damage, const FVector& ImpactPoint) override;
+
+    FORCEINLINE AAPlayerController* GetBasePC() const { return Cast<AAPlayerController>(GetController()); }
+
+private:
+    FTimerHandle StateRestoreTimerHandle;
+
+    void SetPawnStateWithTimeout(EPawnState NewState, float Duration = 2.0f);
+
+    void RestoreStateToIdle();    
 };
