@@ -30,14 +30,21 @@ public:
     UFUNCTION()
     void StopAttack();
 
+    UFUNCTION(BlueprintCallable)
+    bool TryAttack();
+
+    UFUNCTION(BlueprintCallable, Category="AI")
+    void RotateTowardsActor(AActor* TargetActor);
+
+    UFUNCTION(BlueprintCallable, Category="AI")
+    void RotateTowardsActorSmooth(AActor* TargetActor, float InterpSpeed = 0.f);
+
 protected:
     virtual void BeginPlay() override;
 
-    // Attributes
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components")
     UAttributesComponent* Attributes;
 
-    // Reakcje
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Enemy|Anim")
     UAnimMontage* HitMontage;
 
@@ -54,7 +61,7 @@ protected:
     float SightRadius = 800.f;
 
     UPROPERTY(EditAnywhere, Category="Enemy|AI")
-    float AttackRange = 150.f;
+    float AttackRange = 200.f;
 
     UPROPERTY(EditAnywhere, Category="Enemy|AI")
     float AttackRate = 1.5f;
@@ -67,6 +74,9 @@ protected:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Enemy|Combat")
     bool bUseAnimNotifyToDealDamage = false;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Rotation")
+    float YawRotationOffset = 180.f;
 
     TSet<AActor*> AlreadyHitActors;
 
@@ -90,4 +100,17 @@ protected:
 
     UFUNCTION()
     void OnMeleeHitboxBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+
+    UFUNCTION(BlueprintCallable)
+    void EnableMeleeHitbox();
+
+    UFUNCTION(BlueprintCallable)
+    void DisableMeleeHitbox();
+
+    UFUNCTION(BlueprintCallable)
+    void SetPawnState(EPawnState NewState);
+
+protected:
+    UFUNCTION()
+    void OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 };

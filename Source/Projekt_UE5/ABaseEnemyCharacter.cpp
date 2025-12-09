@@ -1,4 +1,3 @@
-// AABaseEnemyCharacter.cpp
 #include "ABaseEnemyCharacter.h"
 #include "AttributesComponent.h"
 #include "DrawDebugHelpers.h"
@@ -14,6 +13,8 @@
 #include "CollisionShape.h" 
 #include "WorldCollision.h"
 #include "CollisionQueryParams.h"
+#include "EnemyAIController.h"
+#include "BehaviorTree/BlackboardComponent.h"
 
 AABaseEnemyCharacter::AABaseEnemyCharacter()
 {
@@ -67,6 +68,18 @@ void AABaseEnemyCharacter::Tick(float DeltaSeconds)
     Super::Tick(DeltaSeconds);
 
     CheckForPlayer();
+}
+
+void AABaseEnemyCharacter::SetPawnState(EPawnState NewState)
+{
+    PawnState = NewState;
+    if (AEnemyAIController* C = Cast<AEnemyAIController>(GetController()))
+    {
+        if (C->GetBlackboardComp())
+        {
+            C->GetBlackboardComp()->SetValueAsEnum(C->BB_PawnState, (uint8)PawnState);
+        }
+    }
 }
 
 void AABaseEnemyCharacter::CheckForPlayer()
@@ -257,9 +270,80 @@ void AABaseEnemyCharacter::EnterHitState()
     }, 0.8f, false);
 }
 
+void AABaseEnemyCharacter::RotateTowardsActor(AActor* TargetActor)
+{
+    if (!TargetActor) return;
+
+    FVector Dir = TargetActor->GetActorLocation() - GetActorLocation();
+    Dir.Z = 0.f;
+    if (Dir.IsNearlyZero()) return;
+
+    FRotator TargetRot = Dir.Rotation();
+
+    TargetRot.Yaw -= YawRotationOffset;
+    TargetRot.Yaw = FRotator::NormalizeAxis(TargetRot.Yaw);
+
+    if (AController* C = GetController())
+    {
+        C->SetControlRotation(FRotator(0.f, TargetRot.Yaw, 0.f));
+    }
+    else
+    {
+        SetActorRotation(FRotator(0.f, TargetRot.Yaw, 0.f));
+    }
+
+    UE_LOG(LogTemp, Log, TEXT("%s rotated instantly to face %s (Yaw=%f, Offset=%f)"),
+           *GetName(), *GetNameSafe(TargetActor), TargetRot.Yaw, YawRotationOffset);
+}
+
+void AABaseEnemyCharacter::RotateTowardsActorSmooth(AActor* TargetActor, float InterpSpeed /*=0.f*/)
+{
+    if (InterpSpeed <= 0.f)
+    {
+        RotateTowardsActor(TargetActor);
+        return;
+    }
+
+    if (!TargetActor) return;
+
+    FVector Dir = TargetActor->GetActorLocation() - GetActorLocation();
+    Dir.Z = 0.f;
+    if (Dir.IsNearlyZero()) return;
+
+    FRotator TargetRot = Dir.Rotation();
+    TargetRot.Yaw -= YawRotationOffset;
+    TargetRot.Yaw = FRotator::NormalizeAxis(TargetRot.Yaw);
+
+    if (AController* C = GetController())
+    {
+        FRotator Current = C->GetControlRotation();
+        FRotator New = FMath::RInterpTo(Current, FRotator(0.f, TargetRot.Yaw, 0.f), GetWorld()->GetDeltaSeconds(), InterpSpeed);
+        C->SetControlRotation(New);
+    }
+    else
+    {
+        FRotator Current = GetActorRotation();
+        FRotator New = FMath::RInterpTo(Current, FRotator(0.f, TargetRot.Yaw, 0.f), GetWorld()->GetDeltaSeconds(), InterpSpeed);
+        SetActorRotation(New);
+    }
+
+    UE_LOG(LogTemp, Verbose, TEXT("%s smooth-rotating toward %s (targetYaw=%f, offset=%f)"),
+           *GetName(), *GetNameSafe(TargetActor), TargetRot.Yaw, YawRotationOffset);
+}
+
+
+
 void AABaseEnemyCharacter::OnDeath(AActor* OwningActor)
 {
     UE_LOG(LogTemp, Warning, TEXT("%s died"), *GetName());
+    if (AEnemyAIController* C = Cast<AEnemyAIController>(GetController()))
+    {
+        if (UBlackboardComponent* BB = C->GetBlackboardComponent())
+        {
+            BB->SetValueAsEnum("PawnState", (uint8)PawnState);
+        }
+    }
+
     Destroy();
 }
 
@@ -270,4 +354,65 @@ void AABaseEnemyCharacter::OnMeleeHitboxBeginOverlap(UPrimitiveComponent* Overla
     UE_LOG(LogTemp, Log, TEXT("%s MeleeHitbox overlapped with %s (OtherComp=%s)"), *GetNameSafe(this), *GetNameSafe(OtherActor), *GetNameSafe(OtherComp));
     UGameplayStatics::ApplyDamage(OtherActor, AttackDamage, GetController(), this, nullptr);
     UE_LOG(LogTemp, Log, TEXT("%s MeleeHitbox applied %f damage to %s"), *GetNameSafe(this), AttackDamage, *GetNameSafe(OtherActor));
+}
+
+bool AABaseEnemyCharacter::TryAttack()
+{
+    if (PawnState == EPawnState::Hit || PawnState == EPawnState::Dead) return false;
+    if (!Attributes) return false;
+
+    float Cost = Attributes->StaminaCost.StaminaCost_Attack;
+    if (!Attributes->CanPayStaminaCost(Cost)) return false;
+
+    Attributes->PayStamina(Cost);
+
+    PawnState = EPawnState::InCombat;
+    SetPawnState(PawnState);
+
+    if (AttackMontage && GetMesh())
+    {
+        if (UAnimInstance* AnimInst = GetMesh()->GetAnimInstance())
+        {
+            FOnMontageEnded EndDelegate;
+            EndDelegate.BindUObject(this, &AABaseEnemyCharacter::OnAttackMontageEnded);
+            AnimInst->Montage_SetEndDelegate(EndDelegate, AttackMontage);
+
+            AnimInst->Montage_Play(AttackMontage);
+            return true;
+        }
+    }
+    return false;
+}
+
+void AABaseEnemyCharacter::OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted)
+{
+    if (Attributes && Attributes->GetHealth() > 0.f)
+    {
+        PawnState = EPawnState::Idle;
+    }
+
+    if (AController* C = GetController())
+    {
+        AEnemyAIController* AICon = Cast<AEnemyAIController>(C);
+        if (AICon && AICon->BlackboardComp)
+        {
+            AICon->BlackboardComp->SetValueAsEnum(AICon->BB_PawnState, (uint8)PawnState);
+        }
+    }
+}
+
+void AABaseEnemyCharacter::EnableMeleeHitbox()
+{
+    if (!MeleeHitBox) return;
+    MeleeHitBox->SetGenerateOverlapEvents(true);
+    MeleeHitBox->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+    UE_LOG(LogTemp, Log, TEXT("ANS: Enabled BoxComponent hitbox on owner %s (component %s)"), *GetNameSafe(this), *GetNameSafe(MeleeHitBox));
+}
+
+void AABaseEnemyCharacter::DisableMeleeHitbox()
+{
+    if (!MeleeHitBox) return;
+    MeleeHitBox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+    MeleeHitBox->SetGenerateOverlapEvents(false);
+    UE_LOG(LogTemp, Log, TEXT("ANS: Disabled BoxComponent hitbox on owner %s (component %s)"), *GetNameSafe(this), *GetNameSafe(MeleeHitBox));
 }
